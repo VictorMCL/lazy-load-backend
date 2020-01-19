@@ -71,9 +71,9 @@ workflows:
   main:
     jobs:
       - Build:
-          context: sonarcloud
+      #    context: sonarcloud
       - Unit Test:
-          context: sonarcloud
+      #    context: sonarcloud
           requires:
             - Build
       #- Static Code Analysis:
