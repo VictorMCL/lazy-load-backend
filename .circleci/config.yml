@@ -30,9 +30,11 @@ jobs:
           at: .
       - run: 
           name: Unit Test
-          command: sh ./gradlew test
+          command: |
+            sh ./gradlew test
+            ls
       - store_test_results:
-          path: ./build/reports/tests/test
+          path: build/reports/tests/test
 
   Static Code Analysis:
     docker:
