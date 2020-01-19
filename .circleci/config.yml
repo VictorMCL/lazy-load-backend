@@ -86,10 +86,10 @@ workflows:
           context: sonarcloud
           requires:
             - Unit Test
-      #- Build and Upload Docker:
-      #    context: sonarcloud
-      #    requires:
-      #      - Static Code Analysis
-      #    filters:
-      #      branches:
-      #        only: master
+      - Build and Upload Docker:
+          context: sonarcloud
+          requires:
+            - Static Code Analysis
+          filters:
+            branches:
+              only: master
