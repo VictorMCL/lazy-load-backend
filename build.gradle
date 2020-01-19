@@ -79,8 +79,6 @@ sonarqube {
 	properties {
 		property "sonar.projectKey", "VictorMCL_lazy-load-backend"
 		property "sonar.organization", "victormcl"
-		property "sonar.projectName", "${CIRCLE_PROJECT_REPONAME}"
-		property "sonar.projectVersion", "${CIRCLE_BUILD_NUM}"
 		property "sonar.host.url", "https://sonarcloud.io"
 		property "sonar.sourceEncoding", "UTF-8"
 	}
