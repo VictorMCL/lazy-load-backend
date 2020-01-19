@@ -44,7 +44,8 @@ jobs:
     steps:
       - attach_workspace:
           at: .
-      - sonarcloud/scan
+      - run: ls build/
+      #- sonarcloud/scan
 
   Build and Upload Docker:
     docker:
@@ -71,15 +72,15 @@ workflows:
   main:
     jobs:
       - Build:
-      #    context: sonarcloud
+          context: sonarcloud
       - Unit Test:
-      #    context: sonarcloud
+          context: sonarcloud
           requires:
             - Build
-      #- Static Code Analysis:
-      #    context: sonarcloud
-      #    requires:
-      #      - Unit Test
+      - Static Code Analysis:
+          context: sonarcloud
+          requires:
+            - Unit Test
       #- Build and Upload Docker:
       #    context: sonarcloud
       #    requires:
