@@ -61,7 +61,6 @@ jobs:
           at: .
       - setup_remote_docker
       - run: ls build/libs/
-      - run: ls
       - run:
           name: Build Docker image
           command: docker build -t victormcl/$CIRCLE_PROJECT_REPONAME:$CIRCLE_BUILD_NUM .
