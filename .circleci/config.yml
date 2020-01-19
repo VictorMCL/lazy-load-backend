@@ -11,7 +11,7 @@ jobs:
           key: dependency-cache-{{ checksum "build.gradle" }}
       - run: 
           name: Install Gradlew and Build
-          command: sh ./gradlew build -x test
+          command: sh ./gradlew build sonarqube
       - save_cache:
           key: dependency-cache-{{ checksum "build.gradle" }}
           paths:
