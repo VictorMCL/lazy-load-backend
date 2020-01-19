@@ -70,3 +70,15 @@ bootRun {
 		classpath = files("$buildDir/classes/java/main", "$buildDir/resources/main", pathingJar.archivePath)
 	}
 }
+
+plugins {
+  id "org.sonarqube" version "2.8"
+}
+
+sonarqube {
+  properties {
+    property "sonar.projectKey", "VictorMCL_lazy-load-backend"
+    property "sonar.organization", "victormcl"
+    property "sonar.host.url", "https://sonarcloud.io"
+  }
+}
