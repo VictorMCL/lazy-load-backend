@@ -32,9 +32,12 @@ jobs:
           name: Unit Test
           command: |
             sh ./gradlew test
-            ls
+            ls build/reports/tests/test/
       - store_test_results:
-          path: build/reports/tests/test
+          path: build/reports/tests/test/
+      - store_artifacts: 
+          path: build/reports/tests/test/
+          prefix: coverage
 
   Static Code Analysis:
     docker:
