@@ -11,7 +11,7 @@ jobs:
           key: dependency-cache-{{ checksum "build.gradle" }}
       - run: 
           name: Install Gradlew and Build
-          command: sh ./gradlew build sonarqube
+          command: sh ./gradlew build -x test
       - save_cache:
           key: dependency-cache-{{ checksum "build.gradle" }}
           paths:
@@ -49,8 +49,10 @@ jobs:
       - attach_workspace:
           at: .
       - run: ls build/
-      - sonarcloud/scan
-
+      - run:
+          name: Analyze on SonarCloud
+          command: gradle build sonarqube"
+  
   Build and Upload Docker:
     docker:
       - image: circleci/buildpack-deps:stretch
