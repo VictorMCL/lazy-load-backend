@@ -8,8 +8,8 @@ ENV DB_PASS=tnsPass0
 
 EXPOSE 9000
 WORKDIR /app
-COPY application.yaml .
-COPY build/libs/app-1.0.jar .
+COPY ./application.yaml .
+COPY ./build/libs/app-1.0.jar .
 
 RUN chmod 755 app-1.0.jar
 
