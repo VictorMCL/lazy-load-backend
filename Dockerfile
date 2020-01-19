@@ -11,6 +11,6 @@ WORKDIR /app
 COPY ./application.yaml .
 COPY ./build/libs/lazy-load-backend-1.0.jar .
 
-RUN chmod 755 app-1.0.jar
+RUN chmod 755 lazy-load-backend-1.0.jar
 
-ENTRYPOINT ["java","-jar","/app/app-1.0.jar","--spring.config.location=/app/application.yaml"]
+ENTRYPOINT ["java","-jar","/app/lazy-load-backend-1.0.jar","--spring.config.location=/app/application.yaml"]
