@@ -80,5 +80,7 @@ sonarqube {
 		property "sonar.projectKey", "VictorMCL_lazy-load-backend"
 		property "sonar.organization", "victormcl"
 		property "sonar.host.url", "https://sonarcloud.io"
+		property "sonar.sources", "./src"
+		property "sonar.sourceEncoding", "UTF-8"
 	}
 }
