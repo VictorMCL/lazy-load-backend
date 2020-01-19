@@ -30,8 +30,7 @@ jobs:
           at: .
       - run: 
           name: Unit Test
-          command: |
-            sh ./gradlew test
+          command: sh ./gradlew test
       - persist_to_workspace:
           root: .
           paths:
@@ -51,7 +50,7 @@ jobs:
       - run: ls build/
       - run:
           name: Analyze on SonarCloud
-          command: gradle build sonarqube
+          command: sh ./gradlew build sonarqube
   
   Build and Upload Docker:
     docker:
