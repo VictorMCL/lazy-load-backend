@@ -34,6 +34,7 @@ allprojects {
 }
 
 apply plugin: 'org.springframework.boot'
+apply plugin: 'org.sonarqube'
 ext.mainClass = 'com.techandsolve.lazyload.LazyLoadApplication'
 
 dependencies {
@@ -69,10 +70,6 @@ bootRun {
 	doFirst {
 		classpath = files("$buildDir/classes/java/main", "$buildDir/resources/main", pathingJar.archivePath)
 	}
-}
-
-plugins {
-  id "org.sonarqube" version "2.7.1"
 }
 
 sonarqube {
