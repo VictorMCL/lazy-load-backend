@@ -43,7 +43,7 @@ jobs:
   Static Code Analysis:
     docker:
       - image: circleci/openjdk:8-jdk-stretch
-    working_directory: ~/repo
+    working_directory: ~/VictorMCL_lazy-load-backend
     steps:
       - attach_workspace:
           at: .
