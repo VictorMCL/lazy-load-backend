@@ -185,7 +185,6 @@ jobs:
             cd kubernetes/
             kubectl apply -f .
             
-
 workflows:
   main:
     jobs:
