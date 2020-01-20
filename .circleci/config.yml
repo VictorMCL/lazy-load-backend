@@ -1,5 +1,8 @@
 version: 2.1
 
+orbs:
+  sonarcloud: sonarsource/sonarcloud@1.0.1
+
 jobs:
   Build:
     docker:
@@ -70,26 +73,148 @@ jobs:
           name: Push Docker image
           command: docker push victormcl/$CIRCLE_PROJECT_REPONAME:$CIRCLE_BUILD_NUM
 
-orbs:
-  sonarcloud: sonarsource/sonarcloud@1.0.1
+  Cloning repositoriy CD:
+    docker:
+      - image: circleci/buildpack-deps:stretch
+    environment:
+      GIT_URL_PROYECT: git@github.com:VictorMCL/lazy-load-backend_CD.git
+    working_directory: ~/CD
+    steps:
+      - add_ssh_keys:
+          fingerprints:
+            - "40:e1:81:a2:fc:ea:0c:98:c0:a3:8e:74:f0:ed:38:0a"
+      - run:
+          name: Establishing the authenticity
+          command: |
+            mkdir -p ~/.ssh
+            echo 'github.com ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ==
+            bitbucket.org ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAubiN81eDcafrgMeLzaFPsw2kNvEcqTKl/VqLat/MaB33pZy0y3rJZtnqwR2qOOvbwKZYKiEO1O6VqNEBxKvJJelCq0dTXWT5pbO2gDXC6h6QDXCaHo6pOHGPUy+YBaGQRGuSusMEASYiWunYN0vCAI8QaXnWMXNMdFP3jHAJH0eDsoiGnLPBlBp4TNm6rYI74nMzgz3B9IikW4WVK+dc8KZJZWYjAuORU3jc1c/NPskD2ASinf8v3xnfXeukU0sJ5N6m5E8VLjObPEO+mN2t/FZTMZLiFqPWc/ALSqnMnnhwrNi2rbfg/rd/IpL8Le3pSBne8+seeFVBoGqzHM9yXw==
+            ' >> ~/.ssh/known_hosts
+      - run:
+          name: Clone frontend repository
+          command: git clone ${GIT_URL_PROYECT} ~/CD
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .  
+
+  Create Cluster K8s:
+    docker:
+      - image: victormcl/terraform-gcp-k8s:latest
+    environment:
+      GOOGLE_PROJECT_ID: "kubernetes-248918"
+      GOOGLE_COMPUTE_ZONE: "us-central1-c"
+      BUCKET_NAME: "lazy-load-frontend-tfstate"
+      NODE_VERSION: "1.13.11-gke.14"
+      MACHINE_TYPE: "n1-standard-1"
+      NODE_COUNT: "1"
+      STAGE: "integration"
+      APP_NAME: "lazy-load"
+    working_directory: ~/CD
+    steps:
+      - attach_workspace:
+          at: .    
+      - run:
+          name: Set Service Account
+          command: |
+            echo $GCLOUD_SERVICE_KEY | gcloud auth activate-service-account --key-file=-
+            gcloud --quiet config set project ${GOOGLE_PROJECT_ID}
+            gcloud --quiet config set compute/zone ${GOOGLE_COMPUTE_ZONE}
+      - run:
+          name: Terraform init
+          command: |
+            cd terraform/ 
+            rm -rf .terraform
+            terraform init -backend-config="credentials=${GCLOUD_SERVICE_KEY}" -backend-config="bucket=${BUCKET_NAME}" -backend-config="prefix=Tfstate-${STAGE}"
+      - run:
+          name: Terraform plan
+          command: | 
+            cd terraform/ 
+            terraform plan -lock=false \
+            -var "credentials=${GCLOUD_SERVICE_KEY}" \
+            -var "stage=${STAGE}" \
+            -var "project=${GOOGLE_PROJECT_ID}" \
+            -var "providerRegion=${GOOGLE_COMPUTE_ZONE}" \
+            -var "app_name=${APP_NAME}" \
+            -var "node_version=${NODE_VERSION}" \
+            -var "machine_type=${MACHINE_TYPE}" \
+            -var "initial_node_count=${NODE_COUNT}" \
+            -out ${APP_NAME}-cl-${STAGE}
+      - run:
+          name: Terraform apply
+          command: | 
+            cd terraform/ 
+            terraform apply -lock=false ${APP_NAME}-cl-${STAGE}
+  
+  Deploy App:
+    docker:
+      - image: victormcl/terraform-gcp-k8s:latest
+    environment:
+      GOOGLE_PROJECT_ID: "kubernetes-248918"
+      GOOGLE_COMPUTE_ZONE: "us-central1-c"
+      STAGE: "integration"
+      APP_NAME: "lazy-load"
+      DOCKER_HOST: "victormcl"
+      VERSION: "95"
+    working_directory: ~/CD
+    steps:
+      - attach_workspace:
+          at: .    
+      - run:
+          name: Set Service Account
+          command: |
+            echo $GCLOUD_SERVICE_KEY | gcloud auth activate-service-account --key-file=-
+            gcloud --quiet config set project ${GOOGLE_PROJECT_ID}
+            gcloud --quiet config set compute/zone ${GOOGLE_COMPUTE_ZONE}
+      - run:
+          name: Set Credentials K8s
+          command: |
+            gcloud container clusters get-credentials ${APP_NAME}-cl-${STAGE} --zone ${GOOGLE_COMPUTE_ZONE} --project ${GOOGLE_PROJECT_ID}
+      - run:
+          name: Replace Variable .yaml
+          command: |
+            cd kubernetes/
+            sed -i 's/#{APP_NAME}/'"${APP_NAME}"'/g; s/#{DEPLOYMENT}/'"${STAGE}"'/g; s/#{VERSION}/'"${VERSION}"'/g; s/#{DOCKER_HOST}/'"${DOCKER_HOST}"'/g; s/#{DOCKER_IMAGE}/'"${CIRCLE_PROJECT_REPONAME}"'/g' 00-app-ns.yaml 01-app-deployment.yaml 02-app-svc.yaml 03-app-hpa.yaml
+            cat 00-app-ns.yaml
+            cat 01-app-deployment.yaml
+            cat 02-app-svc.yaml
+            cat 03-app-hpa.yaml
+      - run:
+          name: Deploy k8
+          command: |
+            cd kubernetes/
+            kubectl apply -f .
+            
 
 workflows:
   main:
     jobs:
-      - Build:
+      #- Build:
+      #    context: sonarcloud
+      #- Unit Test:
+      #    context: sonarcloud
+      #    requires:
+      #      - Build
+      #- Static Code Analysis:
+      #    context: sonarcloud
+      #    requires:
+      #      - Unit Test
+      #- Build and Upload Docker:
+      #    context: sonarcloud
+      #    requires:
+      #      - Static Code Analysis
+      #    filters:
+      #      branches:
+      #        only: master
+      - Cloning repositoriy CD:
           context: sonarcloud
-      - Unit Test:
+      #    requires:
+      #      - Build and Upload Docker
+      - Create Cluster K8s:
           context: sonarcloud
           requires:
-            - Build
-      - Static Code Analysis:
+            - Cloning repositoriy CD
+      - Deploy App:
           context: sonarcloud
           requires:
-            - Unit Test
-      - Build and Upload Docker:
-          context: sonarcloud
-          requires:
-            - Static Code Analysis
-          filters:
-            branches:
-              only: master
+            - Create Cluster K8s
